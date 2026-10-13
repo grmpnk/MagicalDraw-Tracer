@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MagicalDraw - Tracer
 // @namespace    https://github.com/grmpnk
-// @version      1
+// @version      2
 // @description  MagicalDraw でトレースを簡単にする拡張機能です
 // @author       grmpneko
 // @match        http*://*/*
@@ -10,6 +10,7 @@
 // @grant        unsafeWindow
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
+// @run-at       document-start
 // ==/UserScript==
 // ==========================================
 // ユーティリティ/ファクトリ関数
@@ -482,6 +483,85 @@ if (location.href.startsWith("https://draw.kuku.lu/room/")) {
     }, 200);
 }
 // ==========================================
+// トレース素材
+// ==========================================
+if (location.href.startsWith("https://draw.kuku.lu/room/")) {
+    w.onload=()=>{
+        const links = [
+            ["https://a.favicon.im/tools.oyasumi-gamedev.com", "https://tools.oyasumi-gamedev.com/rokehan/#ll=35.659500%2C139.700500&s=300&far=2&n=%E6%B8%8B%E8%B0%B7%E3%82%B9%E3%82%AF%E3%83%A9%E3%83%B3%E3%83%96%E3%83%AB%E4%BA%A4%E5%B7%AE%E7%82%B9", "どこでもロケハン"],
+            ["https://a.favicon.im/www.pixiv.net", "https://www.pixiv.net/", "pixiv"],
+            ["https://a.favicon.im/studio.tripo3d.ai", "https://studio.tripo3d.ai/?category=featured&model_type=all&page_type=1.2&recommended=recommended&use_case=all", "tripo3d"],
+            ["https://a.favicon.im/avatarmaker.vket.com", "https://avatarmaker.vket.com/edit", "avatarmaker"],
+            ["https://a.favicon.im/gallery.feather.art", "https://gallery.feather.art/", "feather art"],
+            ["https://a.favicon.im/www.youtube.com", "https://www.youtube.com/results?search_query=MMD+4K", "MMD YouTube"],
+            ["https://a.favicon.im/jp.pinterest.com", "https://jp.pinterest.com/", "pinterest"],
+            ["https://a.favicon.im/pose-maker.com", "https://pose-maker.com/poses", "ポーズメーカー"],
+            ["https://a.favicon.im/www.posemaniacs.com", "https://www.posemaniacs.com/ja", "posemaniacs"]
+        ];
+        const nav = $S("#nav > div");
+        if(nav){
+            const panel = $C("div", {
+                styles: {
+                    display: "none",
+                    position: "absolute",
+                    top: "100%",
+                    left: "0",
+                    zIndex: "9999",
+                    background: "#fff",
+                    color: "#000",
+                    border: "1px solid #ccc",
+                    borderRadius: "4px",
+                    padding: "4px"
+                }
+            });
+            for(const [fav, url, label] of links){
+                const item = $C("div", {
+                    styles: {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        padding: "4px 8px",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap"
+                    },
+                    on: {
+                        click: e => {
+                            e.stopPropagation();
+                            open(url, "_blank", "noopener");
+                        }
+                    }
+                });
+                const icon = $C("img", {
+                    attrs: {
+                        src: fav,
+                        width: 16,
+                        height: 16
+                    }
+                });
+                const text = $C("span", { props: { textContent: label } });
+                item.append(icon, text);
+                panel.append(item);
+            }
+            const btn = $C("div", {
+                attrs: { class: "nav_btn" },
+                props: { textContent: "トレース素材" },
+                styles: { position: "relative", cursor: "pointer" },
+                on: {
+                    click: e => {
+                        e.stopPropagation();
+                        panel.style.display = panel.style.display === "none" ? "block" : "none";
+                    }
+                }
+            });
+            btn.append(panel);
+            nav.append(btn);
+            d.addEventListener("click", () => {
+                panel.style.display = "none";
+            });
+        }
+    }
+}
+// ==========================================
 // eyedropper
 // ==========================================
 GM_registerMenuCommand('Pick Color', pickColorAndShow);
@@ -512,9 +592,9 @@ async function pickColorAndShow() {
             return;
         }
         const rgbText = `RGB(${rgb.r}, ${rgb.g}, ${rgb.b})`;
-        const out = `${rgbText}  ${hex}`;
+        const out = `${rgbText}  ${hex.replace('#','').toLowerCase()}`;
         try {
-            await navigator.clipboard.writeText(hex.replace('#',''));
+            await navigator.clipboard.writeText(hex.replace('#','').toLowerCase());
         } catch (e) {
             console.warn('Clipboard write failed', e);
         }
@@ -527,12 +607,91 @@ async function pickColorAndShow() {
     }
 }
 // ==========================================
+// mousedown event - canvas/video要素を画像に起こす
+// ==========================================
+let timer = null, box = null;
+
+const proto = w.HTMLCanvasElement.prototype, origGetContext = proto.getContext;
+proto.getContext = function(type, ...rest){
+    if(typeof type === 'string' && type.includes('webgl')){
+        rest[0] = Object.assign({}, rest[0], { preserveDrawingBuffer: true });
+    }
+    return origGetContext.call(this, type, ...rest);
+};
+
+const removeBox = () => {
+    if(box){
+        box.remove();
+        box = null;
+    }
+};
+
+const isMedia = n => n instanceof HTMLCanvasElement || n instanceof HTMLVideoElement;
+const findMedia = e => e.composedPath().find(isMedia) || d.elementsFromPoint(e.clientX, e.clientY).find(isMedia);
+
+const toUrl = el => {
+    if(el instanceof HTMLCanvasElement) return el.toDataURL('image/png');
+    if(!el.videoWidth || !el.videoHeight) return null;
+    const c = $C('canvas', { props: { width: el.videoWidth, height: el.videoHeight } });
+    c.getContext('2d').drawImage(el, 0, 0);
+    return c.toDataURL('image/png');
+};
+
+const showBox = (el, x, y) => {
+    let url;
+    try{
+        url = toUrl(el);
+    }catch{
+        return;
+    }
+    if(!url) return;
+    removeBox();
+    const img = $C('img', {
+        props: { src: url, draggable: true },
+        styles: { display: 'block', maxWidth: '300px', maxHeight: '300px', cursor: 'grab' }
+    });
+    box = $C('div', {
+        attrs: { id: 'grmp-box' },
+        styles: {
+            position: 'absolute',
+            left: `${x + 10}px`,
+            top: `${y + 10}px`,
+            zIndex: '2147483647',
+            padding: '4px',
+            background: '#888',
+            border: '1px solid #444',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+        }
+    });
+    box.appendChild(img);
+    d.body.appendChild(box);
+};
+
+const onDown = e => {
+    if(box && !e.composedPath().includes(box)) removeBox();
+    if(e.button !== 0) return;
+    const el = findMedia(e);
+    if(!el) return;
+    const x = e.pageX, y = e.pageY;
+    clearTimeout(timer);
+    if(e.ctrlKey){
+        showBox(el, x, y);
+        return;
+    }
+    timer = setTimeout(() => showBox(el, x, y), 1000);
+};
+
+const onUp = () => clearTimeout(timer);
+
+for(const type of ['pointerdown', 'mousedown']) window.addEventListener(type, onDown, true);
+for(const type of ['pointerup', 'mouseup']) window.addEventListener(type, onUp, true);
+// ==========================================
 // CSS
 // ==========================================
 GM_addStyle(`
 #win_palette,#win_chat { z-index: 100000; }
 #area-palette-trace-data .trace-slider-row {
-    display: flex !important;
+    display: flex;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     align-items: center !important;

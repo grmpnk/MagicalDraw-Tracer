@@ -494,6 +494,7 @@ if (location.href.startsWith("https://draw.kuku.lu/room/")) {
             ["https://a.favicon.im/avatarmaker.vket.com", "https://avatarmaker.vket.com/edit", "avatarmaker"],
             ["https://a.favicon.im/gallery.feather.art", "https://gallery.feather.art/", "feather art"],
             ["https://a.favicon.im/www.youtube.com", "https://www.youtube.com/results?search_query=MMD+4K", "MMD YouTube"],
+            ["https://a.favicon.im/www.youtube.com", "https://www.youtube.com/results?search_query=%E3%82%AA%E3%83%BC%E3%83%97%E3%83%8B%E3%83%B3%E3%82%B0", "OP YouTube"],
             ["https://a.favicon.im/jp.pinterest.com", "https://jp.pinterest.com/", "pinterest"],
             ["https://a.favicon.im/pose-maker.com", "https://pose-maker.com/poses", "ポーズメーカー"],
             ["https://a.favicon.im/www.posemaniacs.com", "https://www.posemaniacs.com/ja", "posemaniacs"]
@@ -609,87 +610,89 @@ async function pickColorAndShow() {
 // ==========================================
 // mousedown event - canvas/video要素を画像に起こす
 // ==========================================
-let timer = null, box = null;
+if (!location.href.startsWith("https://draw.kuku.lu/room/")) {
+    let timer = null, box = null;
 
-const proto = w.HTMLCanvasElement.prototype, origGetContext = proto.getContext;
-proto.getContext = function(type, ...rest){
-    if(typeof type === 'string' && type.includes('webgl')){
-        rest[0] = Object.assign({}, rest[0], { preserveDrawingBuffer: true });
-    }
-    return origGetContext.call(this, type, ...rest);
-};
-
-const removeBox = () => {
-    if(box){
-        box.remove();
-        box = null;
-    }
-};
-
-const isMedia = n => n instanceof HTMLCanvasElement || n instanceof HTMLVideoElement;
-const findMedia = e => e.composedPath().find(isMedia) || d.elementsFromPoint(e.clientX, e.clientY).find(isMedia);
-
-const toUrl = el => {
-    if(el instanceof HTMLCanvasElement) return el.toDataURL('image/png');
-    if(!el.videoWidth || !el.videoHeight) return null;
-    const c = $C('canvas', { props: { width: el.videoWidth, height: el.videoHeight } });
-    c.getContext('2d').drawImage(el, 0, 0);
-    return c.toDataURL('image/png');
-};
-
-const showBox = (el, x, y) => {
-    let url;
-    try{
-        url = toUrl(el);
-    }catch{
-        return;
-    }
-    if(!url) return;
-    removeBox();
-    const img = $C('img', {
-        props: { src: url, draggable: true },
-        styles: { display: 'block', maxWidth: '300px', maxHeight: '300px', cursor: 'grab' }
-    });
-    box = $C('div', {
-        attrs: { id: 'grmp-box' },
-        styles: {
-            position: 'absolute',
-            left: `${x + 10}px`,
-            top: `${y + 10}px`,
-            zIndex: '2147483647',
-            padding: '4px',
-            background: '#888',
-            border: '1px solid #444',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+    const proto = w.HTMLCanvasElement.prototype, origGetContext = proto.getContext;
+    proto.getContext = function(type, ...rest){
+        if(typeof type === 'string' && type.includes('webgl')){
+            rest[0] = Object.assign({}, rest[0], { preserveDrawingBuffer: true });
         }
-    });
-    box.appendChild(img);
-    d.body.appendChild(box);
-};
+        return origGetContext.call(this, type, ...rest);
+    };
 
-const onDown = e => {
-    if(box && !e.composedPath().includes(box)) removeBox();
-    if(e.button !== 0) return;
-    const el = findMedia(e);
-    if(!el) return;
-    const x = e.pageX, y = e.pageY;
-    clearTimeout(timer);
-    if(e.ctrlKey){
-        showBox(el, x, y);
-        return;
-    }
-    timer = setTimeout(() => showBox(el, x, y), 1000);
-};
+    const removeBox = () => {
+        if(box){
+            box.remove();
+            box = null;
+        }
+    };
 
-const onUp = () => clearTimeout(timer);
+    const isMedia = n => n instanceof HTMLCanvasElement || n instanceof HTMLVideoElement;
+    const findMedia = e => e.composedPath().find(isMedia) || d.elementsFromPoint(e.clientX, e.clientY).find(isMedia);
 
-for(const type of ['pointerdown', 'mousedown']) window.addEventListener(type, onDown, true);
-for(const type of ['pointerup', 'mouseup']) window.addEventListener(type, onUp, true);
+    const toUrl = el => {
+        if(el instanceof HTMLCanvasElement) return el.toDataURL('image/png');
+        if(!el.videoWidth || !el.videoHeight) return null;
+        const c = $C('canvas', { props: { width: el.videoWidth, height: el.videoHeight } });
+        c.getContext('2d').drawImage(el, 0, 0);
+        return c.toDataURL('image/png');
+    };
+
+    const showBox = (el, x, y) => {
+        let url;
+        try{
+            url = toUrl(el);
+        }catch{
+            return;
+        }
+        if(!url) return;
+        removeBox();
+        const img = $C('img', {
+            props: { src: url, draggable: true },
+            styles: { display: 'block', maxWidth: '300px', maxHeight: '300px', cursor: 'grab' }
+        });
+        box = $C('div', {
+            attrs: { id: 'grmp-box' },
+            styles: {
+                position: 'absolute',
+                left: `${x + 10}px`,
+                top: `${y + 10}px`,
+                zIndex: '2147483647',
+                padding: '4px',
+                background: '#888',
+                border: '1px solid #444',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.4)'
+            }
+        });
+        box.appendChild(img);
+        d.body.appendChild(box);
+    };
+
+    const onDown = e => {
+        if(box && !e.composedPath().includes(box)) removeBox();
+        if(e.button !== 0) return;
+        const el = findMedia(e);
+        if(!el) return;
+        const x = e.pageX, y = e.pageY;
+        clearTimeout(timer);
+        if(e.ctrlKey){
+            showBox(el, x, y);
+            return;
+        }
+        timer = setTimeout(() => showBox(el, x, y), 1000);
+    };
+
+    const onUp = () => clearTimeout(timer);
+
+    for(const type of ['pointerdown', 'mousedown']) window.addEventListener(type, onDown, true);
+    for(const type of ['pointerup', 'mouseup']) window.addEventListener(type, onUp, true);
+}
 // ==========================================
 // CSS
 // ==========================================
 GM_addStyle(`
-#win_palette,#win_chat { z-index: 100000; }
+#win_palette,#win_chat { z-index: 100000 !important;}
 #area-palette-trace-data .trace-slider-row {
     display: flex;
     flex-direction: row !important;

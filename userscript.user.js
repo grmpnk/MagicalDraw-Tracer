@@ -2,7 +2,7 @@
 // @name         MagicalDraw - Tracer
 // @namespace    https://github.com/grmpnk
 // @version      1
-// @description  MagicalDraw でトレーズを簡単にする拡張機能です
+// @description  MagicalDraw でトレースを簡単にする拡張機能です
 // @author       grmpneko
 // @match        http*://*/*
 // @match        https://draw.kuku.lu/room/*

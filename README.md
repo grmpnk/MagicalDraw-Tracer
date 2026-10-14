@@ -12,7 +12,7 @@
 2. **スポイト機能**
    - 拡張機能メニューで実行でき、`Pick Color` をクリックすることでスポイト機能を使えます。コピーする値は`#`を抜いた16進数カラーコードです。
 3. **トレース素材**
-   - ルームの右上にトレース素材(サイト)を用意しました。
+   - ルームの右上にトレース素材(サイト)を用意しました(PCのみ）
 # インストール
 1. **Tampermonkey をインストールする**  
    - Chrome : [Tampermonkey](https://chromewebstore.google.com/detail/tampermonkey-%E3%83%99%E3%83%BC%E3%82%BF%E7%89%88/gcalenpjmijncebpfijmoaglllgpjagf)

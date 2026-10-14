@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MagicalDraw - Tracer
 // @namespace    https://github.com/grmpnk
-// @version      2
+// @version      1.1
 // @description  MagicalDraw でトレースを簡単にする拡張機能です
 // @author       grmpneko
 // @match        http*://*/*
@@ -11,6 +11,7 @@
 // @grant        GM_registerMenuCommand
 // @grant        GM_addStyle
 // @run-at       document-start
+// @license      MIT
 // ==/UserScript==
 // ==========================================
 // ユーティリティ/ファクトリ関数
@@ -335,7 +336,7 @@ if (location.href.startsWith("https://draw.kuku.lu/room/")) {
 
             visibilityLabel.append(
                 visibility,
-                d.createTextNode("画像を表示")
+                d.createTextNode(`画像を表示 ${traceImageId}`)
             );
 
             const item = $C("div", {

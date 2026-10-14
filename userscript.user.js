@@ -351,16 +351,6 @@ if (location.href.startsWith("https://draw.kuku.lu/room/")) {
                 }
             });
 
-            const title = $C("div", {
-                props: {
-                    textContent: `トレース画像 ${traceImageId}`
-            },
-                styles: {
-                    fontWeight: "bold",
-                    fontSize: "12px"
-                }
-            });
-
             const removeButton = $C("button", {
                 attrs: {
                     type: "button"
@@ -437,7 +427,6 @@ if (location.href.startsWith("https://draw.kuku.lu/room/")) {
 
             item.append(
                 visibilityLabel,
-                title,
                 preview,
                 makeSlider("回転", -180, 180, 0, 1, value => {
                     state.rotation = value;
